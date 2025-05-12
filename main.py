@@ -1,5 +1,6 @@
 # main.py
 
+import sys
 import sqlite3
 import pandas as pd
 import tkinter as tk
@@ -11,7 +12,7 @@ import matplotlib.pyplot as plt
 DB_PATH = "ecommerce_dwh.sqlite"
 QUERIES = {
     "Monthly Revenue": """
-        SELECT d.year || '-' || printf('%02d', d.month) AS x, 
+        SELECT d.year || '-' || printf('%02d', d.month) AS x,
                SUM(f.total_amount) AS y
         FROM Fact_Sales f
         JOIN Dim_Date d ON f.date_key = d.date_key
@@ -50,6 +51,8 @@ class MainApplication(tk.Tk):
         super().__init__()
         self.title("📊 E-Commerce DWH Dashboard")
         self.geometry("900x650")
+        # ensure proper exit on window close
+        self.protocol("WM_DELETE_WINDOW", self.on_close)
 
         # Grid-layout full window
         self.columnconfigure(0, weight=1)
@@ -68,6 +71,10 @@ class MainApplication(tk.Tk):
 
         self.show_frame("MenuFrame")
 
+    def on_close(self):
+        self.destroy()
+        sys.exit(0)
+
     def show_frame(self, name):
         self.frames[name].tkraise()
 
@@ -83,30 +90,23 @@ class MenuFrame(ttk.Frame):
         self.rowconfigure(0, weight=0)
         self.rowconfigure(1, weight=1)
 
-        # Title
         title = ttk.Label(self, text="Welcome to E-Commerce Dashboard",
                           font=("Segoe UI", 20, "bold"))
         title.grid(row=0, column=0, columnspan=2, pady=(40,20))
 
-        # Load original images once
+        # load images
         self.normal_orig = Image.open("Normal.jpg")
         self.ai_orig     = Image.open("AI.jpg")
 
-        # Normal Analysis button
         self.normal_btn = ttk.Button(
-            self,
-            text="Normal Analysis",
-            compound="top",
+            self, text="Normal Analysis", compound="top",
             command=lambda: controller.show_frame("AnalysisFrame")
         )
         self.normal_btn.grid(row=1, column=0, sticky="nsew", padx=20, pady=10)
         self.normal_btn.bind("<Configure>", self._resize_normal)
 
-        # AI Interface button
         self.ai_btn = ttk.Button(
-            self,
-            text="AI Interface",
-            compound="top",
+            self, text="AI Interface", compound="top",
             command=lambda: controller.show_frame("AIFrame")
         )
         self.ai_btn.grid(row=1, column=1, sticky="nsew", padx=20, pady=10)
@@ -114,7 +114,7 @@ class MenuFrame(ttk.Frame):
 
     def _resize_normal(self, event):
         w, h = event.width, event.height
-        img_h = max(h - 32, 10)  # extra space for larger text
+        img_h = max(h - 32, 10)
         img = self.normal_orig.resize((w, img_h), Image.LANCZOS)
         self.normal_photo = ImageTk.PhotoImage(img)
         self.normal_btn.config(image=self.normal_photo)
@@ -132,13 +132,16 @@ class AnalysisFrame(ttk.Frame):
         super().__init__(parent, padding=10)
         self.controller = controller
 
-        ttk.Button(self, text="← Back", command=lambda: controller.show_frame("MenuFrame")).pack(anchor="w")
+        ttk.Button(self, text="← Back",
+                   command=lambda: controller.show_frame("MenuFrame")).pack(anchor="w")
 
         theme_frame = ttk.Frame(self)
         theme_frame.pack(fill=tk.X, pady=5)
         ttk.Label(theme_frame, text="Theme:").pack(side=tk.LEFT)
-        ttk.Button(theme_frame, text="Light", command=lambda: self.set_mode('light')).pack(side=tk.LEFT, padx=2)
-        ttk.Button(theme_frame, text="Dark",  command=lambda: self.set_mode('dark')).pack(side=tk.LEFT, padx=2)
+        ttk.Button(theme_frame, text="Light",
+                   command=lambda: self.set_mode('light')).pack(side=tk.LEFT, padx=2)
+        ttk.Button(theme_frame, text="Dark",
+                   command=lambda: self.set_mode('dark')).pack(side=tk.LEFT, padx=2)
 
         controls = ttk.Frame(self)
         controls.pack(fill=tk.X, pady=5)
@@ -147,7 +150,7 @@ class AnalysisFrame(ttk.Frame):
                                   state="readonly", width=30)
         self.combo.current(0)
         self.combo.pack(side=tk.LEFT, padx=5)
-        ttk.Button(controls, text="Run ▶",  command=self.run_query).pack(side=tk.LEFT, padx=5)
+        ttk.Button(controls, text="Run ▶", command=self.run_query).pack(side=tk.LEFT, padx=5)
         ttk.Button(controls, text="Save ▶", command=self.save_plot).pack(side=tk.LEFT, padx=5)
 
         chart_frame = ttk.Frame(self, relief=tk.SUNKEN)
@@ -167,12 +170,9 @@ class AnalysisFrame(ttk.Frame):
                              'button_bg':'#e0e0e0','button_fg':'#000000'}
         self.dark_colors  = {'bg':'#2e2e2e','fg':'#ffffff',
                              'button_bg':'#444444','button_fg':'#ffffff'}
-        # Increase button font size here
-        for w in ('TFrame','TLabel','TButton','TCombobox'):
-            if w == 'TButton':
-                self.style.configure(w, font=('Segoe UI', 12, 'bold'))
-            else:
-                self.style.configure(w, font=('Segoe UI', 10))
+        for w in ('TFrame','TLabel','TCombobox'):
+            self.style.configure(w, font=('Segoe UI',10))
+        self.style.configure('TButton', font=('Segoe UI',12,'bold'))
         self.set_mode('light')
 
     def set_mode(self, mode):
